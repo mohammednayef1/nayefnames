@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كود نيمز - اللعبة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/game.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>كود نيمز - <%= team.includes('red') ? 'الفريق الأحمر' : 'الفريق الأزرق' %></h1>
+            <p>أنت: <%= username %> - <%= team.includes('spymaster') ? 'قائد الفريق' : 'عضو في الفريق' %></p>
+            <p>رمز الغرفة: <%= roomId %></p>
+        </header>
+        
+        <div class="game-area">
+            <div class="teams-container">
+                <div class="team red" id="red-team-display">
+                    <div class="team-name">الفريق الأحمر</div>
+                    <div class="team-score" id="red-score">0</div>
+                </div>
+                
+                <div class="team blue" id="blue-team-display">
+                    <div class="team-name">الفريق الأزرق</div>
+                    <div class="team-score" id="blue-score">0</div>
+                </div>
+            </div>
+            
+            <div class="game-status" id="game-status">جاري تحميل اللعبة...</div>
+            
+            <% if (team.includes('spymaster')) { %>
+                <div class="clue-section">
+                    <div class="clue-display" id="clue-display"></div>
+                    <div class="clue-form">
+                        <input type="text" id="clue-input" placeholder="الكلمة الدليل">
+                        <input type="number" id="number-input" placeholder="العدد" min="1" max="5">
+                        <button class="btn btn-primary" id="submit-clue">إرسال الدليل</button>
+                    </div>
+                </div>
+            <% } %>
+            
+            <div class="game-board" id="game-board"></div>
+            
+            <div class="controls">
+                <button class="btn btn-danger" id="end-turn">إنهاء الدور</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="endgame-modal">
+        <div class="modal-content">
+            <h2 id="endgame-title">انتهت اللعبة!</h2>
+            <p id="endgame-message"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="new-game">لعبة جديدة</button>
+                <button class="btn btn-secondary" id="close-endgame">إغلاق</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const roomId = '<%= roomId %>';
+        const username = '<%= username %>';
+        const team = '<%= team %>';
+        const isSpymaster = team.includes('spymaster');
+        
+        const socket = io();
+        socket.emit('join-room', { roomId, username, team: team.replace('-spymaster', ''), isSpymaster });
+        
+        // سوف يتم استكمال الجافاسكريبت في ملف game.js
+    </script>
+</body>
+</html>

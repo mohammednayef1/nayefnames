@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>غرفة اللعب - كود نيمز</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/game.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>غرفة اللعب</h1>
+            <p>رمز الغرفة: <%= roomId %></p>
+        </header>
+        
+        <main class="lobby-page">
+            <div class="players-list">
+                <h2>اللاعبون</h2>
+                <ul id="players">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </ul>
+            </div>
+            
+            <div class="team-selection">
+                <h2>اختر فريقك</h2>
+                <div class="teams">
+                    <div class="team red" id="red-team">
+                        <h3>الفريق الأحمر</h3>
+                        <button class="btn btn-red" onclick="joinTeam('red')">انضم</button>
+                        <button class="btn btn-red" onclick="becomeSpymaster('red')">كن قائد الفريق</button>
+                    </div>
+                    
+                    <div class="team blue" id="blue-team">
+                        <h3>الفريق الأزرق</h3>
+                        <button class="btn btn-blue" onclick="joinTeam('blue')">انضم</button>
+                        <button class="btn btn-blue" onclick="becomeSpymaster('blue')">كن قائد الفريق</button>
+                    </div>
+                </div>
+                
+                <form id="start-form" action="/game" method="GET">
+                    <input type="hidden" name="room" value="<%= roomId %>">
+                    <input type="hidden" name="username" id="username-input">
+                    <input type="hidden" name="team" id="team-input">
+                    <button type="button" id="start-game" class="btn btn-primary" disabled>ابدأ اللعبة</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        const roomId = '<%= roomId %>';
+        let username = prompt('أدخل اسمك:') || 'لاعب' + Math.floor(Math.random() * 1000);
+        let team = null;
+        let isSpymaster = false;
+        
+        document.getElementById('username-input').value = username;
+        
+        const socket = io();
+        socket.emit('join-room', { roomId, username, team });
+        
+        function joinTeam(selectedTeam) {
+            team = selectedTeam;
+            document.getElementById('team-input').value = team;
+            socket.emit('join-room', { roomId, username, team });
+        }
+        
+        function becomeSpymaster(selectedTeam) {
+            team = selectedTeam;
+            isSpymaster = true;
+            document.getElementById('team-input').value = team + '-spymaster';
+            socket.emit('join-room', { roomId, username, team, isSpymaster: true });
+        }
+        
+        socket.on('update-players', (players) => {
+            const playersList = document.getElementById('players');
+            playersList.innerHTML = '';
+            
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = `${player.username} (${player.team === 'red' ? 'أحمر' : 'أزرق'}${player.isSpymaster ? ' - قائد الفريق' : ''})`;
+                playersList.appendChild(li);
+            });
+            
+            // تمكين زر البدء إذا كان هناك قائدان للفريقين
+            const redSpymaster = players.some(p => p.team === 'red' && p.isSpymaster);
+            const blueSpymaster = players.some(p => p.team === 'blue' && p.isSpymaster);
+            document.getElementById('start-game').disabled = !(redSpymaster && blueSpymaster);
+        });
+        
+        document.getElementById('start-game').addEventListener('click', () => {
+            socket.emit('start-game', roomId);
+            document.getElementById('start-form').submit();
+        });
+        
+        socket.on('game-started', () => {
+            document.getElementById('start-form').submit();
+        });
+    </script>
+</body>
+</html>
