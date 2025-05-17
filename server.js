@@ -73,6 +73,42 @@ const io = socketio(server);
 
 io.on('connection', (socket) => {
     console.log('New user connected');
+
+    socket.on('join-room', (data) => {
+        const { roomId, username, team } = data;
+
+        if (!rooms[roomId]) {
+            console.warn(`Room ${roomId} does not exist.`);
+            return;
+        }
+
+        socket.join(roomId);
+
+        if (!rooms[roomId].players.some(p => p.id === socket.id)) {
+            rooms[roomId].players.push({
+                id: socket.id,
+                username,
+                team,
+                isSpymaster: false
+            });
+        }
+
+        io.to(roomId).emit('update-players', rooms[roomId].players);
+    });
+
+    socket.on('disconnect', () => {
+        for (const roomId in rooms) {
+            rooms[roomId].players = rooms[roomId].players.filter(p => p.id !== socket.id);
+            io.to(roomId).emit('update-players', rooms[roomId].players);
+
+            if (rooms[roomId].players.length === 0) {
+                delete rooms[roomId];
+                console.log(`Room ${roomId} deleted due to empty.`);
+            }
+        }
+    });
+
+    console.log('New user connected');
     
     socket.on('join-room', (data) => {
         const { roomId, username, team } = data;
